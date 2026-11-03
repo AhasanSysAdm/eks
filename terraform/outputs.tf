@@ -30,5 +30,5 @@ output "node_group_name" {
 
 output "alb_controller_role_arn" {
   value       = aws_iam_role.alb_controller.arn
-  description = "IRSA role for AWS Load Balancer Controller (cicd/pipeline.sh)."
+  description = "IRSA role for AWS Load Balancer Controller (install-alb-controller.sh)."
 }

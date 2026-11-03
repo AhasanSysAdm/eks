@@ -1,13 +1,8 @@
 # INGRESS: HTTP router in front of Services (AWS Load Balancer Controller on EKS).
 # Routes /api1 and /api2 to separate Deployments, without a hostname restriction.
 # Requires the AWS Load Balancer Controller (IngressClass alb) in kube-system.
-# If it is not installed yet, run cicd/pipeline.sh once, or:
-#   helm repo add eks https://aws.github.io/eks-charts
-#   helm upgrade --install aws-load-balancer-controller eks/aws-load-balancer-controller \
-#     --namespace kube-system --version 1.13.4 \
-#     --set clusterName="$CLUSTER_NAME" --set region="$AWS_REGION" --set vpcId="$VPC_ID" \
-#     --set serviceAccount.create=true --set serviceAccount.name=aws-load-balancer-controller \
-#     --set-string serviceAccount.annotations."eks\.amazonaws.com/role-arn"="$ROLE_ARN"
+# Install from the instructor workstation (not the bastion):
+#   bash install-alb-controller.sh
 # Creates the demo namespace, two Deployments, two backend Services, and an Ingress
 # that provisions a billable internet-facing ALB (tag env=test-eks).
 # Apply:
