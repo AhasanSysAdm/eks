@@ -8,6 +8,7 @@ set -euo pipefail
 source "$(dirname "$0")/common.sh"
 need aws kubectl helm terraform
 ensure_aws_credentials
+aws eks update-kubeconfig --region "$AWS_REGION" --name "$CLUSTER_NAME" --alias "$CLUSTER_NAME"
 check_context
 
 tf init -input=false >/dev/null
