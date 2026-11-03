@@ -1,0 +1,176 @@
+# INGRESS: HTTP router in front of Services (AWS Load Balancer Controller on EKS).
+# Routes /api1 and /api2 to separate Deployments, without a hostname restriction.
+# Requires the AWS Load Balancer Controller (IngressClass alb) in kube-system.
+# If it is not installed yet, run cicd/pipeline.sh once, or:
+#   helm repo add eks https://aws.github.io/eks-charts
+#   helm upgrade --install aws-load-balancer-controller eks/aws-load-balancer-controller \
+#     --namespace kube-system --version 1.13.4 \
+#     --set clusterName="$CLUSTER_NAME" --set region="$AWS_REGION" --set vpcId="$VPC_ID" \
+#     --set serviceAccount.create=true --set serviceAccount.name=aws-load-balancer-controller \
+#     --set-string serviceAccount.annotations."eks\.amazonaws.com/role-arn"="$ROLE_ARN"
+# Creates the demo namespace, two Deployments, two backend Services, and an Ingress
+# that provisions a billable internet-facing ALB (tag env=test-eks).
+# Apply:
+#   kubectl apply -f 16-ingress.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: manifest-demo
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api1
+  namespace: manifest-demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: api1
+  template:
+    metadata:
+      labels:
+        app: api1
+    spec:
+      containers:
+      - name: api1
+        image: busybox:1.36
+        command:
+        - sh
+        - -ec
+        - |
+          mkdir -p /www
+          printf 'Hello from API 1! Pod: %s\n' "$(hostname)" > /www/api1
+          exec httpd -f -p 80 -h /www
+        ports:
+        - containerPort: 80
+          name: http
+        readinessProbe:
+          httpGet:
+            path: /api1
+            port: 80
+        resources:
+          requests: { cpu: 25m, memory: 32Mi }
+          limits: { cpu: 100m, memory: 64Mi }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api1
+  namespace: manifest-demo
+  annotations:
+    alb.ingress.kubernetes.io/healthcheck-path: /api1
+    alb.ingress.kubernetes.io/success-codes: "200"
+spec:
+  type: ClusterIP
+  selector:
+    app: api1
+  ports:
+  - name: http
+    port: 80
+    targetPort: http
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api2
+  namespace: manifest-demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: api2
+  template:
+    metadata:
+      labels:
+        app: api2
+    spec:
+      containers:
+      - name: api2
+        image: busybox:1.36
+        command:
+        - sh
+        - -ec
+        - |
+          mkdir -p /www
+          printf 'Hello from API 2! Pod: %s\n' "$(hostname)" > /www/api2
+          exec httpd -f -p 80 -h /www
+        ports:
+        - containerPort: 80
+          name: http
+        readinessProbe:
+          httpGet:
+            path: /api2
+            port: 80
+        resources:
+          requests: { cpu: 25m, memory: 32Mi }
+          limits: { cpu: 100m, memory: 64Mi }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api2
+  namespace: manifest-demo
+  annotations:
+    alb.ingress.kubernetes.io/healthcheck-path: /api2
+    alb.ingress.kubernetes.io/success-codes: "200"
+spec:
+  type: ClusterIP
+  selector:
+    app: api2
+  ports:
+  - name: http
+    port: 80
+    targetPort: http
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: web
+  namespace: manifest-demo
+  labels:
+    app: web
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}]'
+    alb.ingress.kubernetes.io/backend-protocol: HTTP
+    alb.ingress.kubernetes.io/tags: env=test-eks
+spec:
+  ingressClassName: alb
+  rules:
+  - http:
+      paths:
+      - path: /api1
+        pathType: Prefix
+        backend:
+          service:
+            name: api1
+            port:
+              number: 80
+      - path: /api2
+        pathType: Prefix
+        backend:
+          service:
+            name: api2
+            port:
+              number: 80
+
+# Wait for the backends and ALB hostname:
+#   kubectl -n kube-system rollout status deployment/aws-load-balancer-controller
+#   kubectl -n manifest-demo rollout status deployment/api1
+#   kubectl -n manifest-demo rollout status deployment/api2
+#   kubectl -n manifest-demo get ingress web
+# ADDRESS is the ALB DNS name (may take 1–3 minutes). Then:
+#   ALB="$(kubectl -n manifest-demo get ingress web -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')"
+#   curl.exe "http://${ALB}/api1"
+#   curl.exe "http://${ALB}/api2"
+# Expected: "Hello from API 1!" and "Hello from API 2!", with different Pod names.
+# No custom Host header or hosts-file entry is required.
+# Only /api1 and /api2 have demo content; / returns 404 for this Ingress.
+# The ALB is billable. Delete this demo before destroy.sh so the load balancer
+# does not linger:
+#   kubectl delete namespace manifest-demo
+# Or remove only these objects:
+#   kubectl -n manifest-demo delete deployment,service api1 api2
+#   kubectl -n manifest-demo delete ingress web
