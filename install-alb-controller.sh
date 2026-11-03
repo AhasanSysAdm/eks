@@ -23,18 +23,25 @@ fi
 echo "Installing AWS Load Balancer Controller (creates internet-facing ALBs when Ingress is applied)."
 helm repo add eks https://aws.github.io/eks-charts >/dev/null
 helm repo update eks >/dev/null
+VALUES="$(mktemp)"
+trap 'rm -f -- "$VALUES"' EXIT
+cat > "$VALUES" <<EOF
+clusterName: ${CLUSTER_NAME}
+region: ${AWS_REGION}
+vpcId: ${VPC_ID}
+serviceAccount:
+  create: true
+  name: aws-load-balancer-controller
+  annotations:
+    eks.amazonaws.com/role-arn: ${ROLE_ARN}
+enableShield: false
+enableWaf: false
+enableWafv2: false
+EOF
 helm upgrade --install aws-load-balancer-controller eks/aws-load-balancer-controller \
   --namespace kube-system \
   --version 1.13.4 \
-  --set clusterName="$CLUSTER_NAME" \
-  --set region="$AWS_REGION" \
-  --set vpcId="$VPC_ID" \
-  --set serviceAccount.create=true \
-  --set serviceAccount.name=aws-load-balancer-controller \
-  --set-string serviceAccount.annotations."eks\.amazonaws.com/role-arn"="$ROLE_ARN" \
-  --set enableShield=false \
-  --set enableWaf=false \
-  --set enableWafv2=false \
+  -f "$VALUES" \
   --wait --timeout 5m
 
 kubectl -n kube-system rollout status deployment/aws-load-balancer-controller --timeout=180s
