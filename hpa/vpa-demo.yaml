@@ -1,0 +1,88 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: vpa-demo
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vertical-demo
+  namespace: vpa-demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: vertical-demo
+  template:
+    metadata:
+      labels:
+        app: vertical-demo
+    spec:
+      containers:
+      - name: worker
+        image: busybox:1.36
+        command:
+        - sh
+        - -ec
+        - |
+          while true; do
+            if [ -f /tmp/load ]; then
+              awk 'BEGIN { for (i=0; i<500000; i++) x+=sqrt(i); print x }' > /dev/null
+            else
+              sleep 1
+            fi
+          done
+        resources:
+          requests:
+            cpu: 20m
+            memory: 16Mi
+          limits:
+            cpu: 200m
+            memory: 256Mi
+---
+apiVersion: autoscaling.k8s.io/v1
+kind: VerticalPodAutoscaler
+metadata:
+  name: vertical-demo
+  namespace: vpa-demo
+spec:
+  targetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: vertical-demo
+  updatePolicy:
+    updateMode: "Off"
+  resourcePolicy:
+    containerPolicies:
+    - containerName: worker
+      controlledResources:
+      - cpu
+      - memory
+      controlledValues: RequestsOnly
+      minAllowed:
+        cpu: 25m
+        memory: 32Mi
+      maxAllowed:
+        cpu: 150m
+        memory: 128Mi
+
+# VPA = VERTICAL Pod Autoscaler, not virtual scaling. Use a separate target from HPA.
+# AWS EKS only (after create.sh). Delete hpa-demo; a second worker is required:
+#   bash scale-workers.sh 2
+#   bash hpa/install-vpa.sh
+#   kubectl apply -f hpa/vpa-demo.yaml
+#   kubectl -n vpa-demo rollout status deployment/vertical-demo
+# Drive CPU toward the 200m limit for 5 minutes (run in one terminal):
+#   bash hpa/vpa-load.sh
+# In a second terminal:
+#   kubectl -n vpa-demo top pods
+#   kubectl -n vpa-demo get vpa vertical-demo -w
+#   kubectl -n vpa-demo describe vpa vertical-demo
+# Recommendations may need several minutes of metrics/history.
+# Apply recommendations to newly created Pods (explicit restart for demonstration):
+#   bash hpa/vpa-mode.sh initial
+#   kubectl -n vpa-demo get pods -o custom-columns=NAME:.metadata.name,REQUESTS:.spec.containers[0].resources.requests
+# Return to recommendation-only; existing Pod requests are NOT reset:
+#   bash hpa/vpa-mode.sh off
+#   kubectl delete namespace vpa-demo
+# VPA system components remain until cluster deletion; see README for removal.

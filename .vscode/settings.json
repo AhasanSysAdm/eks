@@ -1,0 +1,13 @@
+{
+  "yaml.customTags": [
+    "!Equals sequence",
+    "!GetAtt scalar",
+    "!GetAtt sequence",
+    "!If sequence",
+    "!Not sequence",
+    "!Or sequence",
+    "!Ref scalar",
+    "!Sub scalar",
+    "!Sub sequence"
+  ]
+}

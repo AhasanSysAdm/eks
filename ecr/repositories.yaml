@@ -1,0 +1,66 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Private repositories for classroom images. Each repo is tagged env=test-eks for billing.
+Parameters:
+  ClusterName:
+    Type: String
+Resources:
+  Web:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: !Sub ${ClusterName}/web
+      EmptyOnDelete: true
+      ImageTagMutability: IMMUTABLE
+      EncryptionConfiguration:
+        EncryptionType: AES256
+      ImageScanningConfiguration:
+        ScanOnPush: true
+      Tags:
+      - Key: env
+        Value: test-eks
+      - Key: Project
+        Value: !Ref ClusterName
+  Php:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: !Sub ${ClusterName}/php
+      EmptyOnDelete: true
+      ImageTagMutability: IMMUTABLE
+      EncryptionConfiguration:
+        EncryptionType: AES256
+      ImageScanningConfiguration:
+        ScanOnPush: true
+      Tags:
+      - Key: env
+        Value: test-eks
+      - Key: Project
+        Value: !Ref ClusterName
+  Busybox:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: !Sub ${ClusterName}/busybox
+      EmptyOnDelete: true
+      ImageTagMutability: IMMUTABLE
+      EncryptionConfiguration:
+        EncryptionType: AES256
+      ImageScanningConfiguration:
+        ScanOnPush: true
+      Tags:
+      - Key: env
+        Value: test-eks
+      - Key: Project
+        Value: !Ref ClusterName
+  NginxCicd:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: !Sub ${ClusterName}/nginx-cicd
+      EmptyOnDelete: true
+      ImageTagMutability: IMMUTABLE
+      EncryptionConfiguration:
+        EncryptionType: AES256
+      ImageScanningConfiguration:
+        ScanOnPush: true
+      Tags:
+      - Key: env
+        Value: test-eks
+      - Key: Project
+        Value: !Ref ClusterName

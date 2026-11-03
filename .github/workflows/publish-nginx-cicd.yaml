@@ -1,0 +1,48 @@
+name: Publish nginx CI/CD image
+on:
+  workflow_dispatch:
+    inputs:
+      app_version:
+        description: Version baked into index.html (run 1, then 2)
+        required: true
+        default: "1"
+permissions:
+  contents: read
+  id-token: write
+concurrency:
+  group: classroom-nginx-cicd-publication
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      AWS_REGION: us-east-2
+      CLUSTER_NAME: academy-eks-demo
+    steps:
+    - uses: actions/checkout@v4
+    - name: Authenticate to AWS using GitHub OIDC
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: ${{ vars.AWS_ECR_PUBLISH_ROLE_ARN }}
+        aws-region: ${{ env.AWS_REGION }}
+    - name: Build and push nginx-cicd
+      env:
+        APP_VERSION: ${{ inputs.app_version }}
+      run: |
+        set -euo pipefail
+        if [[ ! "$APP_VERSION" =~ ^[a-zA-Z0-9][a-zA-Z0-9._-]{0,31}$ ]]; then
+          echo "Invalid app_version" >&2
+          exit 1
+        fi
+        ACCOUNT="$(aws sts get-caller-identity --query Account --output text)"
+        REGISTRY="${ACCOUNT}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+        IMAGE="${REGISTRY}/${CLUSTER_NAME}/nginx-cicd:v${APP_VERSION}"
+        aws ecr get-login-password | docker login --username AWS --password-stdin "$REGISTRY"
+        docker build --platform linux/amd64 --pull \
+          --build-arg "APP_VERSION=$APP_VERSION" \
+          -t "$IMAGE" -f cicd/Dockerfile cicd
+        docker push "$IMAGE"
+        echo "Published $IMAGE"
+        echo "Deploy from the instructor workstation with:"
+        echo "  bash cicd/pipeline.sh $APP_VERSION"

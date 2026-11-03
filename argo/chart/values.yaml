@@ -1,0 +1,13 @@
+replicaCount: 1
+message: "Hello from the classroom Helm chart!"
+image:
+  repository: nginx
+  tag: "1.28-alpine"
+  pullPolicy: IfNotPresent
+resources:
+  requests:
+    cpu: 25m
+    memory: 32Mi
+  limits:
+    cpu: 100m
+    memory: 64Mi

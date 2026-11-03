@@ -1,0 +1,134 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: hpa-demo
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cpu-web
+  namespace: hpa-demo
+data:
+  index.php: |
+    <?php
+    header("Content-Type: text/plain");
+    $result = 0;
+    for ($i = 1; $i <= 300000; $i++) {
+        $result += sqrt($i);
+    }
+    echo "CPU work completed on " . gethostname() . ": " . $result . "\n";
+  health.txt: "ready\n"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cpu-web
+  namespace: hpa-demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cpu-web
+  template:
+    metadata:
+      labels:
+        app: cpu-web
+    spec:
+      containers:
+      - name: web
+        image: php:8.3-apache
+        ports:
+        - containerPort: 80
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            cpu: 200m
+            memory: 128Mi
+        readinessProbe:
+          httpGet:
+            path: /health.txt
+            port: 80
+          initialDelaySeconds: 5
+        volumeMounts:
+        - name: code
+          mountPath: /var/www/html/index.php
+          subPath: index.php
+        - name: code
+          mountPath: /var/www/html/health.txt
+          subPath: health.txt
+      volumes:
+      - name: code
+        configMap:
+          name: cpu-web
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cpu-web
+  namespace: hpa-demo
+spec:
+  selector:
+    app: cpu-web
+  ports:
+  - port: 80
+    targetPort: 80
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: cpu-web
+  namespace: hpa-demo
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: cpu-web
+  minReplicas: 1
+  maxReplicas: 3
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 50
+  behavior:
+    # Scale-up is declared here (not only API defaults) for the EKS classroom demo.
+    # 0s window: add Pods as soon as CPU stays above 50% of the 50m request.
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      selectPolicy: Max
+      policies:
+      - type: Pods
+        value: 2
+        periodSeconds: 15
+      - type: Percent
+        value: 100
+        periodSeconds: 15
+    scaleDown:
+      stabilizationWindowSeconds: 60
+      policies:
+      - type: Pods
+        value: 1
+        periodSeconds: 30
+
+# AWS EKS lab cluster (after create.sh). From EKS/ in Bash (Linux/WSL):
+#   bash hpa/install-metrics.sh
+#   kubectl apply -f hpa/demo.yaml
+#   kubectl -n hpa-demo rollout status deployment/cpu-web --timeout=180s
+# Start HTTP load to drive CPU toward its 200m limit; automatically stops after 10m:
+#   kubectl apply -f hpa/load.yaml
+# Inspect in separate terminals (Ctrl+C stops only the watch):
+#   kubectl -n hpa-demo get hpa cpu-web -w
+#   kubectl -n hpa-demo get pods -w
+#   kubectl -n hpa-demo top pods
+#   kubectl -n hpa-demo describe hpa cpu-web
+#   kubectl -n hpa-demo get deployment cpu-web
+# 50% means 50% of the 50m REQUEST (25m), NOT 50% of the 200m limit.
+# Stop early and observe scale-down after the stabilization window:
+#   kubectl -n hpa-demo delete job cpu-load --ignore-not-found
+# Rerun load: delete the completed Job first, then apply hpa/load.yaml again.
+# Cleanup before the VPA/Argo lessons to free small-node capacity:
+#   kubectl delete namespace hpa-demo

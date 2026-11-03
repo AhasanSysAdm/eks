@@ -1,0 +1,79 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: cicd-demo
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-cicd
+  namespace: cicd-demo
+  labels:
+    app: nginx-cicd
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nginx-cicd
+  template:
+    metadata:
+      labels:
+        app: nginx-cicd
+    spec:
+      containers:
+      - name: nginx
+        image: __IMAGE__
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 80
+          name: http
+        readinessProbe:
+          httpGet:
+            path: /
+            port: http
+          initialDelaySeconds: 3
+          periodSeconds: 5
+        resources:
+          requests:
+            cpu: 20m
+            memory: 32Mi
+          limits:
+            cpu: 100m
+            memory: 64Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-cicd
+  namespace: cicd-demo
+spec:
+  type: ClusterIP
+  selector:
+    app: nginx-cicd
+  ports:
+  - name: http
+    port: 80
+    targetPort: http
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: nginx-cicd
+  namespace: cicd-demo
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}]'
+    alb.ingress.kubernetes.io/tags: env=test-eks
+spec:
+  ingressClassName: alb
+  rules:
+  - http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: nginx-cicd
+            port:
+              number: 80

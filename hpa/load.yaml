@@ -1,0 +1,38 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: cpu-load
+  namespace: hpa-demo
+spec:
+  activeDeadlineSeconds: 600
+  backoffLimit: 0
+  template:
+    metadata:
+      labels:
+        app: cpu-load
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: load
+        image: busybox:1.36
+        command:
+        - sh
+        - -ec
+        - |
+          while true; do
+            wget -q -T 10 -O /dev/null http://cpu-web.hpa-demo.svc.cluster.local/
+          done
+        resources:
+          requests:
+            cpu: 10m
+            memory: 8Mi
+          limits:
+            cpu: 100m
+            memory: 32Mi
+
+# kubectl apply -f hpa/load.yaml
+# kubectl -n hpa-demo get hpa,pods
+# kubectl -n hpa-demo top pods
+# kubectl -n hpa-demo logs job/cpu-load
+# kubectl -n hpa-demo delete job cpu-load
+# DeadlineExceeded after 600 seconds is intentional: it bounds the load test.

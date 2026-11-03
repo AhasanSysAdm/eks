@@ -1,0 +1,50 @@
+name: Publish ECR images and update GitOps
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+    - ecr/Dockerfile
+    - ecr/build-push.sh
+    - ecr/update-images.py
+    - .github/workflows/publish-gitops.yaml
+permissions:
+  contents: write
+  id-token: write
+concurrency:
+  group: classroom-image-publication
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      AWS_REGION: us-east-2
+      CLUSTER_NAME: academy-eks-demo
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        ref: main
+    - name: Authenticate to AWS using GitHub OIDC
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: ${{ vars.AWS_ECR_PUBLISH_ROLE_ARN }}
+        aws-region: ${{ env.AWS_REGION }}
+    - name: Build and push all application images
+      env:
+        IMAGE_TAG: git-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+      run: bash ecr/build-push.sh "$IMAGE_TAG"
+    - name: Update desired image versions in Git
+      env:
+        IMAGE_TAG: git-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+      run: |
+        ACCOUNT="$(aws sts get-caller-identity --query Account --output text)"
+        python3 ecr/update-images.py \
+          --registry "$ACCOUNT.dkr.ecr.$AWS_REGION.amazonaws.com" \
+          --cluster "$CLUSTER_NAME" --tag "$IMAGE_TAG"
+        git config user.name "github-actions[bot]"
+        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        git add argo/chart/values.yaml hpa/demo.yaml hpa/load.yaml hpa/vpa-demo.yaml
+        git commit -m "Update classroom ECR images to $IMAGE_TAG"
+        # Fail rather than overwrite if main advanced while images were building.
+        git push origin HEAD:main

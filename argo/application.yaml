@@ -1,0 +1,41 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: classroom
+  namespace: argocd
+spec:
+  description: Only the classroom Helm chart in the gitops-demo namespace.
+  sourceRepos:
+  - https://github.com/YOUR-USER/eks-classroom.git
+  destinations:
+  - namespace: gitops-demo
+    server: https://kubernetes.default.svc
+  clusterResourceWhitelist: []
+  namespaceResourceWhitelist:
+  - group: ""
+    kind: ConfigMap
+  - group: ""
+    kind: Service
+  - group: apps
+    kind: Deployment
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: classroom
+  namespace: argocd
+spec:
+  project: classroom
+  source:
+    repoURL: https://github.com/YOUR-USER/eks-classroom.git
+    targetRevision: main
+    path: argo/chart
+    helm:
+      releaseName: gitops-demo
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: gitops-demo
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
