@@ -1,0 +1,59 @@
+# POD DISRUPTION BUDGET: keep at least two of three web Pods available
+# during voluntary disruptions such as a node drain.
+# Create the namespace first if needed:
+#   kubectl create namespace manifest-demo --dry-run=client -o yaml | kubectl apply -f -
+#   kubectl apply -f .\23-pdb.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pdb-demo
+  namespace: manifest-demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pdb-demo
+  template:
+    metadata:
+      labels:
+        app: pdb-demo
+    spec:
+      containers:
+      - name: web
+        image: nginx:1.27
+        ports:
+        - containerPort: 80
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 80
+          periodSeconds: 5
+        resources:
+          requests:
+            cpu: 25m
+            memory: 32Mi
+          limits:
+            cpu: 100m
+            memory: 64Mi
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: pdb-demo
+  namespace: manifest-demo
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: pdb-demo
+
+# Wait until all three replicas are ready, then inspect the budget:
+#   kubectl -n manifest-demo rollout status deployment/pdb-demo --timeout=180s
+#   kubectl -n manifest-demo get pods -l app=pdb-demo
+#   kubectl -n manifest-demo get pdb pdb-demo
+# ALLOWED DISRUPTIONS should be 1 when all replicas are healthy.
+# PDBs constrain voluntary evictions; they do not prevent involuntary failures
+# or control a Deployment's own rolling update strategy.
+# Cleanup:
+#   kubectl delete -f .\23-pdb.yaml
+

@@ -1,0 +1,143 @@
+apiVersion: v1
+items:
+- apiVersion: v1
+  kind: Node
+  metadata:
+    annotations:
+      node.alpha.kubernetes.io/ttl: "0"
+      projectcalico.org/IPv4Address: 172.25.184.12/20
+      projectcalico.org/IPv4VXLANTunnelAddr: 10.1.92.0
+      volumes.kubernetes.io/controller-managed-attach-detach: "true"
+    creationTimestamp: "2026-10-27T05:47:20Z"
+    labels:
+      beta.kubernetes.io/arch: amd64
+      beta.kubernetes.io/os: linux
+      kubernetes.io/arch: amd64
+      kubernetes.io/hostname: 11704-ahasan-khan
+      kubernetes.io/os: linux
+      microk8s.io/cluster: "true"
+      node.kubernetes.io/microk8s-controlplane: microk8s-controlplane
+    name: 11704-ahasan-khan
+    resourceVersion: "450467"
+    uid: b30c6271-4abf-4041-aa9d-94b9e08fd54d
+  spec: {}
+  status:
+    addresses:
+    - address: 172.25.184.12
+      type: InternalIP
+    - address: 11704-ahasan-khan
+      type: Hostname
+    allocatable:
+      cpu: "8"
+      ephemeral-storage: 1054714292Ki
+      hugepages-1Gi: "0"
+      hugepages-2Mi: "0"
+      memory: 7909600Ki
+      pods: "110"
+    capacity:
+      cpu: "8"
+      ephemeral-storage: 1055762868Ki
+      hugepages-1Gi: "0"
+      hugepages-2Mi: "0"
+      memory: 8012000Ki
+      pods: "110"
+    conditions:
+    - lastHeartbeatTime: "2026-11-03T03:56:18Z"
+      lastTransitionTime: "2026-11-03T03:56:18Z"
+      message: Calico is running on this node
+      reason: CalicoIsUp
+      status: "False"
+      type: NetworkUnavailable
+    - lastHeartbeatTime: "2026-11-04T02:23:38Z"
+      lastTransitionTime: "2026-10-27T05:47:20Z"
+      message: kubelet has sufficient memory available
+      reason: KubeletHasSufficientMemory
+      status: "False"
+      type: MemoryPressure
+    - lastHeartbeatTime: "2026-11-04T02:23:38Z"
+      lastTransitionTime: "2026-10-27T05:47:20Z"
+      message: kubelet has no disk pressure
+      reason: KubeletHasNoDiskPressure
+      status: "False"
+      type: DiskPressure
+    - lastHeartbeatTime: "2026-11-04T02:23:38Z"
+      lastTransitionTime: "2026-10-27T05:47:20Z"
+      message: kubelet has sufficient PID available
+      reason: KubeletHasSufficientPID
+      status: "False"
+      type: PIDPressure
+    - lastHeartbeatTime: "2026-11-04T02:23:38Z"
+      lastTransitionTime: "2026-11-03T03:56:18Z"
+      message: kubelet is posting ready status
+      reason: KubeletReady
+      status: "True"
+      type: Ready
+    daemonEndpoints:
+      kubeletEndpoint:
+        Port: 10250
+    images:
+    - names:
+      - registry.k8s.io/ingress-nginx/controller@sha256:a1cbad75b0a7098bf9325132794dddf9eef917e8a7fe246749a4cea7ff6f01eb
+      - registry.k8s.io/ingress-nginx/controller:v1.11.5
+      sizeBytes: 105563032
+    - names:
+      - docker.io/calico/cni@sha256:9a2c99f0314053aa11e971bd5d72e17951767bf5c6ff1fd9c38c4582d7cb8a0a
+      - docker.io/calico/cni:v3.25.1
+      sizeBytes: 89884044
+    - names:
+      - docker.io/calico/node@sha256:0cd00e83d06b3af8cd712ad2c310be07b240235ad7ca1397e04eb14d20dcc20f
+      - docker.io/calico/node:v3.25.1
+      sizeBytes: 88335791
+    - names:
+      - docker.io/library/nginx@sha256:6784fb0834aa7dbbe12e3d7471e69c290df3e6ba810dc38b34ae33d3c1c05f7d
+      - docker.io/library/nginx:1.27
+      sizeBytes: 72406859
+    - names:
+      - docker.io/library/nginx@sha256:600f7cd45e27aa13e9304c834ab7c1b0ff39df85ee1dcc5087955455d77bc83b
+      - docker.io/library/nginx:latest
+      sizeBytes: 63932917
+    - names:
+      - docker.io/library/nginx@sha256:4c41e2d0a3a55b325ed572cd0200bdb72af1433c3daa2bca6ef8eea68ce504a2
+      sizeBytes: 63903938
+    - names:
+      - docker.io/calico/kube-controllers@sha256:02c1232ee4b8c5a145c401ac1adb34a63ee7fc46b70b6ad0a4e068a774f25f8a
+      - docker.io/calico/kube-controllers:v3.25.1
+      sizeBytes: 31908610
+    - names:
+      - registry.k8s.io/metrics-server/metrics-server@sha256:c60778fa1c44d0c5a0c4530ebe83f9243ee6fc02f4c3dc59226c201931350b10
+      - registry.k8s.io/metrics-server/metrics-server:v0.6.3
+      sizeBytes: 29943609
+    - names:
+      - docker.io/coredns/coredns@sha256:a0ead06651cf580044aeb0a0feba63591858fb2e43ade8c9dea45a6a89ae7e5e
+      - docker.io/coredns/coredns:1.10.1
+      sizeBytes: 16190758
+    - names:
+      - docker.io/cdkbot/hostpath-provisioner@sha256:ac51e50e32b70e47077fe90928a7fe4d3fc8dd49192db4932c2643c49729c2eb
+      - docker.io/cdkbot/hostpath-provisioner:1.5.0
+      sizeBytes: 11717290
+    - names:
+      - docker.io/library/busybox@sha256:73aaf090f3d85aa34ee199857f03fa3a95c8ede2ffd4cc2cdb5b94e566b11662
+      - docker.io/library/busybox:1.36
+      sizeBytes: 2217006
+    - names:
+      - docker.io/library/busybox@sha256:141c253bc4c3fd0a201d32dc1f493bcf3fff003b6df416dea4f41046e0f37d47
+      - docker.io/library/busybox:1.28.4
+      sizeBytes: 727869
+    - names:
+      - registry.k8s.io/pause@sha256:bb6ed397957e9ca7c65ada0db5c5d1c707c9c8afc80a94acbe69f3ae76988f0c
+      - registry.k8s.io/pause:3.7
+      sizeBytes: 311278
+    nodeInfo:
+      architecture: amd64
+      bootID: a7d30ccd-e7dd-493e-87cd-5577842a64a1
+      containerRuntimeVersion: containerd://1.6.28
+      kernelVersion: 6.6.87.2-microsoft-standard-WSL2
+      kubeProxyVersion: v1.31.14
+      kubeletVersion: v1.31.14
+      machineID: ca7e3d2a937a4fefaab527719aa3ca43
+      operatingSystem: linux
+      osImage: Ubuntu 26.04 LTS
+      systemUUID: ca7e3d2a937a4fefaab527719aa3ca43
+kind: List
+metadata:
+  resourceVersion: ""

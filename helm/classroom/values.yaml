@@ -1,0 +1,18 @@
+replicaCount: 1
+message: "Hello from the classroom Helm chart!"
+image:
+  repository: nginx
+  tag: "1.28-alpine"
+  pullPolicy: IfNotPresent
+service:
+  type: NodePort
+  port: 80
+  # Use a different nodePort for each release in the same cluster.
+  nodePort: 30096
+resources:
+  requests:
+    cpu: 25m
+    memory: 32Mi
+  limits:
+    cpu: 100m
+    memory: 64Mi

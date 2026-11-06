@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-page
+  namespace: {{ .Release.Namespace }}
+data:
+  index.html: |
+    {{- .Values.message | nindent 4 }}
